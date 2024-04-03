@@ -1,0 +1,30 @@
+Movement System
+
+Get movement to be “space like”
+Once the button is pressed for (10) or more frames using a counter, up the speed by 1. 
+Increase delay more
+Once button is no longer pressed, reset current counter back to zero
+The max speed will be 3
+Once button is no longer pressed, the current movement is stuck until another input
+Default velocity is at speed 1 whenever a direction is pressed for that direction
+
+Background
+
+Use space themed tilemap (might need to make manually using pixel image creator software)
+deep space purple with stars (will kill spaceship) 
+path safe space pink color
+Start point will have assembly made “start”
+End point will have assembly made “end”
+
+Sprite
+
+spaceship in a top down position
+2 or 3 sprites to make illusion of spinning
+possible explosion when touch deep space
+
+Mechanics
+
+Single path maze
+Needs to get from start to finish
+Will teleport back to start if spaceship collides with purple “deep space”
+Game ends once spaceship reaches end

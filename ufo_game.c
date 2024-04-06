@@ -117,6 +117,7 @@ void setup_sprite_image() {
 
     /* load the image into sprite image memory */
     memcpy16_dma((unsigned short*) sprite_image_memory, (unsigned short*) ufo_data, (ufo_width * ufo_height) / 2);
+	
 }
 /* a sprite is a moveable image on the screen */
 struct Sprite {
@@ -245,6 +246,22 @@ struct UFO {
     /* the animation counter counts how many frames until we flip */
     int counter;
 };
+struct Explosion {
+    /* the actual sprite attribute info */
+    struct Sprite* sprite;
+
+    /* the x and y position */
+    int x, y;
+
+    /* which frame of the animation he is on */
+    int frame;
+
+    /* the number of frames to wait before flipping */
+    int animation_delay;
+
+    /* the animation counter counts how many frames until we flip */
+    int counter;
+};
 unsigned short tile_lookup(int x, int y, int xscroll, int yscroll,
         const unsigned short* tilemap, int tilemap_w, int tilemap_h) {
 
@@ -303,10 +320,35 @@ unsigned short tile_lookup(int x, int y, int xscroll, int yscroll,
 void ufo_init(struct UFO* ufo) {
     ufo->x = 112;
     ufo->y = 72;
-    ufo->frame = 0;
+    ufo->frame = 64;
     ufo->counter = 0;
     ufo->animation_delay = 6;
-    ufo->sprite = sprite_init(ufo->x, ufo->y, SIZE_16_16, ufo->frame, 0);
+    ufo->sprite = sprite_init(ufo->x, ufo->y, SIZE_32_16, ufo->frame, 1);
+}
+void explo_init(struct Explosion* explo) {
+    explo->x = 241;
+    explo->y = 0;
+    explo->frame = 0;
+    explo->counter = 0;
+    explo->animation_delay = 4;
+    explo->sprite = sprite_init(explo->x, explo->y, SIZE_32_32, explo->frame, 0);
+}
+void explo_update(struct Explosion* explo, int position) { 
+	explo->counter++;
+	if (explo->counter >= explo->animation_delay) {
+        explo->frame = explo->frame + 32;
+        if (explo->frame > 32) {
+            explo->frame = 0;
+        }
+        sprite_set_offset(explo->sprite, explo->frame);
+        explo->counter = 0;
+    }
+	if (position==1) {
+    sprite_position(explo->sprite, 104, 64);
+	}
+	else {
+	sprite_position(explo->sprite, 241, 0);
+	}
 }
 /* update the ufo */
 int ufo_update(struct UFO* ufo, int xscroll, int yscroll) {
@@ -320,9 +362,9 @@ int ufo_update(struct UFO* ufo, int xscroll, int yscroll) {
 	 
     ufo->counter++;
 	if (ufo->counter >= ufo->animation_delay) {
-        ufo->frame = ufo->frame + 8;
-        if (ufo->frame > 16) {
-            ufo->frame = 0;
+        ufo->frame = ufo->frame + 16;
+        if (ufo->frame > 96) {
+            ufo->frame = 64;
         }
         sprite_set_offset(ufo->sprite, ufo->frame);
         ufo->counter = 0;
@@ -397,7 +439,7 @@ void setup_background() {
     }
 
     /* set all control the bits in this register */
-    *bg0_control = 0 |    /* priority, 0 is highest, 3 is lowest */
+    *bg0_control = 1 |    /* priority, 0 is highest, 3 is lowest */
         (0 << 2)  |       /* the char block the image data is stored in */
         (0 << 6)  |       /* the mosaic flag */
         (1 << 7)  |       /* color mode, 0 is 16 colors, 1 is 256 colors */
@@ -445,6 +487,9 @@ int main() {
 	
 	struct UFO ufo;
 	ufo_init(&ufo);
+	
+	struct Explosion explo;
+	explo_init(&explo);
 
     /* set initial scroll to 0 */
     int xscroll = 48;
@@ -454,45 +499,57 @@ int main() {
 	int xcount = 0;
 	int ycount = 0;
 	int collide = 0;
-	
+	int explode_count = 0;
+	int load = 0;
 
     /* loop forever */
     while (1) {
 		collide = ufo_update(&ufo, xscroll, yscroll);
 		/* scroll with the arrow keys */
-		if (button_pressed(BUTTON_DOWN)) {
-			if (ycount < 40) {
-				ycount++;
+		if (collide != 1) {
+			if (button_pressed(BUTTON_DOWN)) {
+				if (ycount < 40) {
+					ycount++;
+				}
 			}
-		}
-		if (button_pressed(BUTTON_UP)) {
-			if (ycount > -40) {
-				ycount--;
+			if (button_pressed(BUTTON_UP)) {
+				if (ycount > -40) {
+					ycount--;
+				}
 			}
-		}
-		if (button_pressed(BUTTON_RIGHT)) {
-			if (xcount < 40) {
-				xcount++;
+			if (button_pressed(BUTTON_RIGHT)) {
+				if (xcount < 40) {
+					xcount++;
+				}
 			}
-		}
-		if (button_pressed(BUTTON_LEFT)) {
-			if (xcount > -40) {
-				xcount--;
+			if (button_pressed(BUTTON_LEFT)) {
+				if (xcount > -40) {
+					xcount--;
+				}
 			}
-		}
 		
-		xscroll+= (int) xcount/10;
-		yscroll+= (int) ycount/10;
-		
+			xscroll+= (int) xcount/10;
+			yscroll+= (int) ycount/10;
+		}
+		if (collide == 1 && load == 1) {
+			explode_count++;
+			explo_update(&explo,1);
+			if (explode_count > 40) {
+				explode_count=0;
+				xscroll = 48;
+				yscroll = 0;
+				xcount = 0;
+				ycount = 0;
+				collide = 0;
+				explo_update(&explo,0);
+			}
+		} 
+		if (load == 0) {
+			load = 1;
+		}
 		/* wait for vblank before scrolling */
 		wait_vblank();
-		if (collide == 1) {
-			collide = 0;
-			xscroll = 48;
-			yscroll = 0;
-			xcount = 0;
-			ycount = 0;
-		} 
+		
 		*bg0_x_scroll = xscroll;
 		*bg0_y_scroll = yscroll;
 		

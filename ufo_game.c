@@ -262,6 +262,7 @@ struct Explosion {
     /* the animation counter counts how many frames until we flip */
     int counter;
 };
+
 unsigned short tile_lookup(int x, int y, int xscroll, int yscroll,
         const unsigned short* tilemap, int tilemap_w, int tilemap_h) {
 
@@ -394,6 +395,8 @@ void wait_vblank() {
     /* wait until all 160 lines have been updated */
     while (*scanline_counter < 160) { }
 }
+int death_count(int a);
+int speed(int a);
 
 
 /* this function checks whether a particular button has been pressed */

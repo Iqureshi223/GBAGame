@@ -475,6 +475,8 @@ void sprite_clear() {
 void delay(unsigned int amount) {
     for (int i = 0; i < amount * 10; i++);
 }
+int death_count(int a);
+int speed(int a);
 
 /* the main function */
 int main() {

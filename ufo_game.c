@@ -3,6 +3,7 @@
  * program which demonstraes tile mode 0
  */
 
+#include <stdio.h>
 /* include the image we are using */
 #include "space.h"
 
@@ -395,9 +396,6 @@ void wait_vblank() {
     /* wait until all 160 lines have been updated */
     while (*scanline_counter < 160) { }
 }
-int death_count(int a);
-int speed(int a);
-
 
 /* this function checks whether a particular button has been pressed */
 unsigned char button_pressed(unsigned short button) {
@@ -476,7 +474,29 @@ void delay(unsigned int amount) {
     for (int i = 0; i < amount * 10; i++);
 }
 int death_count(int a);
-int speed(int a);
+int timer(int a);
+//creates checkpoint functions
+void checkpoint(struct UFO *ufo, int flag, int xsp, int ysp, int respawn) {
+    //if the checkpoint is active and the player has died do this if statement
+    if (flag==1 & respawn==1) {
+        ufo->x = xsp; //set ufo equal to the x position of the checkpoint
+        ufo->y = ysp; //set ufo equal to the y position of the checkpoint
+        respawn = 0; //reset players death to equal false
+    }
+
+}
+void set_text(char* str, int row, int col) {
+
+    int index = row * 32 + col;
+    int missing = 32;
+    volatile unsigned short* ptr = screen_block(24);
+
+    while (*str) {
+        ptr[index] = *str - missing;
+        index++;
+        str++;
+    }
+}
 
 /* the main function */
 int main() {
@@ -507,8 +527,17 @@ int main() {
 	int explode_count = 0;
 	int load = 0;
 
+    int flag = 0; //if the checkpoint is activated set this to 1
+    int respawn = 0; //if the player has died set this to 1
+    int deathtotal = 0;
+    int time = 0;
+  
     /* loop forever */
     while (1) {
+        int times = timer(time);
+        char str[32];
+        sprintf(str, "time: %d", timer);
+        set_text(str, 0, 0);
 		collide = ufo_update(&ufo, xscroll, yscroll);
 		/* scroll with the arrow keys */
 		if (collide != 1) {
@@ -547,6 +576,7 @@ int main() {
 				ycount = 0;
 				collide = 0;
 				explo_update(&explo,0);
+       
 			}
 		} 
 		if (load == 0) {
